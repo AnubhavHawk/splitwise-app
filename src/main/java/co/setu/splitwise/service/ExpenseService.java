@@ -89,14 +89,27 @@ public class ExpenseService {
     public List<UserExpense> getExpenseForUser(String userId) {
         List<Object[]> expenseOnUser = expenseRepository.getExpenseByUserClass(userId);
         List<UserExpense> userExpenseList = null;
-        if(expenseOnUser != null) {
+        if(expenseOnUser != null && expenseOnUser.size() > 0) {
             userExpenseList = new ArrayList<>();
             for(Object[] o: expenseOnUser) {
                 userExpenseList.add(mapUserExpense(o));
             }
         }
+        else {
+            throw new IllegalArgumentException("User " + userId + " does not exist");
+        }
 
         return userExpenseList;
+    }
+
+    public Boolean deleteExpense(String expenseId) {
+        try {
+            expenseRepository.deleteById(expenseId);
+            return true;
+        }
+        catch (Exception ex) {
+            throw new IllegalArgumentException("expenseId " + expenseId + " does not exist");
+        }
     }
 
     private UserExpense mapUserExpense(Object[] o) {
@@ -112,7 +125,7 @@ public class ExpenseService {
         Expense expenseObject = null;
         String validationMessage = "";
         Expense.ExpenseBuilder expenseBuilder = Expense.builder();
-        if(expenseDto == null) {
+        if(expenseDto == null || expenseDto.getCreatedBy() == null) {
             validationMessage = "\nExpense Object can not be null";
         }
         RegisteredUser createdBy = userRepository.getById(expenseDto.getCreatedBy());

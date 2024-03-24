@@ -7,6 +7,7 @@ import co.setu.splitwise.model.Group;
 import co.setu.splitwise.model.RegisteredUser;
 import co.setu.splitwise.repository.UserRepository;
 import co.setu.splitwise.service.GroupService;
+import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +19,11 @@ import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static co.setu.splitwise.util.Util.failedJsonResponse;
 import static co.setu.splitwise.util.Util.jsonResponse;
 
+@Api(tags = "Splitwise Group API", consumes = MediaType.APPLICATION_JSON_VALUE)
 @RestController
 public class GroupApiController {
 
@@ -64,14 +65,17 @@ public class GroupApiController {
 
     @PostMapping("/group/add-member")
     public ResponseEntity addGroupMember(@RequestBody AddGroupMemberDto addGroupMemberDto) { // BUG: It only stores the new member and removes the existing group members
-        int totalCount = 0;
         try {
-            totalCount = groupService.addMember(addGroupMemberDto.getGroupId(), addGroupMemberDto.mapUser()).getGroupMembers().size();
+            Group updated = groupService.addMember(addGroupMemberDto.getGroupId(), addGroupMemberDto.mapUser());
+            return jsonResponse(
+                    "groupId", updated.getGroupId(),
+                    "memberCount", updated.getGroupMembers().size(),
+                    "createdBy", updated.getCreatedBy().getUserName());
         }
         catch (IllegalArgumentException e) {
             logger.error("Unable to add member to group {}", e.getMessage(), e);
+            return failedJsonResponse(e.getMessage());
         }
-        return ResponseEntity.ok().body(totalCount);
     }
 
     @GetMapping("group/members/{groupId}")
@@ -90,6 +94,7 @@ public class GroupApiController {
             return jsonResponse("groupId", groupId, "members", memberDto);
         }
         catch (EntityNotFoundException ex) {
+            logger.error(ex.getMessage(), ex);
             return failedJsonResponse("Group " + groupId + " does not exist");
         }
     }

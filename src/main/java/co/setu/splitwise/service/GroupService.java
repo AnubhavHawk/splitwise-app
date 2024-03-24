@@ -45,6 +45,7 @@ public class GroupService {
             throw new IllegalArgumentException("Members list can not be null");
         }
         else {
+            memberList.addAll(group.getGroupMembers()); // Keep the existing members intact
             return addMemberToGroup(group, memberList);
         }
     }
