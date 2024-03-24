@@ -19,9 +19,18 @@ public class Util {
 
     public static ResponseEntity jsonResponse(Object ...args) {
         Map map = new HashMap();
-        for(int i = 0; i < args.length; i += 2) {
-            map.put(args[i].toString(), args[i+1]);
+        for(int i = 0; i < args.length-1; i += 2) {
+            if(args[i] != null && args[i+1] != null) {
+                map.put(args[i].toString(), args[i + 1]);
+            }
         }
         return ResponseEntity.ok().body(map);
+    }
+
+    public static ResponseEntity failedJsonResponse(String message, Object ...args) {
+        return jsonResponse(
+                "success", false,
+                "message", message,
+                args, null);
     }
 }

@@ -2,6 +2,7 @@ package co.setu.splitwise.controller;
 
 import co.setu.splitwise.dto.group.AddGroupMemberDto;
 import co.setu.splitwise.dto.group.CreateGroupDTO;
+import co.setu.splitwise.dto.group.MemberDto;
 import co.setu.splitwise.model.Group;
 import co.setu.splitwise.model.RegisteredUser;
 import co.setu.splitwise.repository.UserRepository;
@@ -9,15 +10,20 @@ import co.setu.splitwise.service.GroupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static co.setu.splitwise.util.Util.failedJsonResponse;
 import static co.setu.splitwise.util.Util.jsonResponse;
 
-@RestController(value = "/group")
+@RestController
 public class GroupApiController {
 
     @Autowired
@@ -28,10 +34,20 @@ public class GroupApiController {
 
     private static final Logger logger = LoggerFactory.getLogger(GroupApiController.class);
 
-    @PostMapping("/create")
+    @PostMapping(value = "/group/create", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity createGroup(@RequestBody CreateGroupDTO createGroupDTO) {
-        Group created = groupService.createGroup(map(createGroupDTO));
-        return ResponseEntity.ok().body("Created: " + created);
+        try {
+            Group created = groupService.createGroup(map(createGroupDTO));
+            return jsonResponse(
+                    "groupId", created.getGroupId(),
+                    "createdBy", created.getCreatedBy().getUserName(),
+                    "memberCount", created.getGroupMembers().size(),
+                    "groupName", created.getGroupName());
+        }
+        catch (Exception ex) {
+            logger.error(ex.getMessage(), ex);
+            return failedJsonResponse(ex.getMessage());
+        }
     }
     private Group map(CreateGroupDTO createGroupDTO) {
         RegisteredUser createdBy = RegisteredUser.builder().userId(createGroupDTO.getGroupAdmin()).build();
@@ -46,7 +62,7 @@ public class GroupApiController {
                 .build();
     }
 
-    @PostMapping("/add-member")
+    @PostMapping("/group/add-member")
     public ResponseEntity addGroupMember(@RequestBody AddGroupMemberDto addGroupMemberDto) { // BUG: It only stores the new member and removes the existing group members
         int totalCount = 0;
         try {
@@ -58,9 +74,23 @@ public class GroupApiController {
         return ResponseEntity.ok().body(totalCount);
     }
 
-    @GetMapping("/members/{groupId}")
+    @GetMapping("group/members/{groupId}")
     public ResponseEntity getGroupMembers(@PathVariable String groupId) {
-        List<RegisteredUser> members = groupService.getGroupMembers(groupId);
-        return jsonResponse("members", members);
+        try {
+            List<RegisteredUser> members = groupService.getGroupMembers(groupId);
+            List<MemberDto> memberDto = members.stream().map(
+                    member -> MemberDto.builder()
+                                .registeredAt(member.getRegisteredAt().toString())
+                                .userId(member.getUserId())
+                                .userName(member.getUserName())
+                                .mobile(member.getMobile())
+                                .build()
+            ).collect(Collectors.toList());
+
+            return jsonResponse("groupId", groupId, "members", memberDto);
+        }
+        catch (EntityNotFoundException ex) {
+            return failedJsonResponse("Group " + groupId + " does not exist");
+        }
     }
 }

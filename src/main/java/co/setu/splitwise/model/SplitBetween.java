@@ -22,5 +22,6 @@ public class SplitBetween {
     private RegisteredUser toBePaidBy;
     private Double amountPerUser;
     private String groupId; // If it is from a group then it will not be null
+    @Enumerated(EnumType.STRING)
     private ExpenseStatus.Status status;
 }

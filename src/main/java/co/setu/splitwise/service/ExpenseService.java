@@ -1,17 +1,18 @@
 package co.setu.splitwise.service;
 
 import co.setu.splitwise.dto.expense.AddExpenseDto;
-import co.setu.splitwise.model.Expense;
-import co.setu.splitwise.model.ExpenseStatus;
-import co.setu.splitwise.model.RegisteredUser;
-import co.setu.splitwise.model.SplitBetween;
+import co.setu.splitwise.dto.expense.UpdateExpenseDto;
+import co.setu.splitwise.model.*;
 import co.setu.splitwise.repository.ExpenseRepository;
+import co.setu.splitwise.repository.GroupRepository;
+import co.setu.splitwise.repository.SplitBetweenRepository;
 import co.setu.splitwise.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static co.setu.splitwise.util.RandomIdGenerator.generateRandomId;
 
@@ -21,13 +22,17 @@ public class ExpenseService {
     @Autowired
     private ExpenseRepository expenseRepository;
 
+    @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
+    private SplitBetweenRepository splitBetweenRepository;
 
     @Autowired
     private UserRepository userRepository;
 
     public Expense addExpense(AddExpenseDto addExpenseDto) {
         // Step 1: Validate the values
-
         // Step 2: Prepare the expense
         Expense preparedExpense = validateAndPrepareExpenseObject(addExpenseDto);
         if(preparedExpense != null) {
@@ -35,6 +40,72 @@ public class ExpenseService {
         }
         // Step 3: Persist to DB
         return null;
+    }
+
+    public Expense updateExpense(UpdateExpenseDto updateExpenseDto) {
+        Expense existing = expenseRepository.findById(updateExpenseDto.getExpenseId()).orElse(null);
+        if(existing == null) {
+            throw new IllegalArgumentException("expenseId: " + updateExpenseDto.getExpenseId() + " does not exist");
+        }
+
+        // Validate if users are registered
+        for(UpdateExpenseDto.IndividualExpense individualExpense: updateExpenseDto.getExpenseBreakdown()) {
+            RegisteredUser user = userRepository.findById(individualExpense.getUserId()).orElse(null);
+            if(user == null) {
+                throw new IllegalArgumentException("user: " + individualExpense.getUserId() + " does not exist");
+            }
+        }
+        List<SplitBetween> usersToPay = existing.getSplitBetween(); // Update for the provided users
+
+        List<SplitBetween> listOfUsersPaying = new ArrayList<>();
+        for(SplitBetween userFromDb: usersToPay) {
+            for(UpdateExpenseDto.IndividualExpense individualExpense: updateExpenseDto.getExpenseBreakdown()) {
+                if(userFromDb.getToBePaidBy().getUserId().equals(individualExpense.getUserId())) {
+                    userFromDb.setStatus(individualExpense.getStatus());
+                    listOfUsersPaying.add(userFromDb);
+//                    splitBetweenRepository.save(userFromDb); // Don't call the DB everytime
+                }
+            }
+        }
+        splitBetweenRepository.saveAll(listOfUsersPaying);
+
+        // If all have paid, then mark the status as CLEARED for the expense
+        long clearedExpensePerHead = existing.getSplitBetween().stream()
+                .filter(userWhoPaied -> userWhoPaied.getStatus() == ExpenseStatus.Status.PAID)
+                .count();
+
+        if(clearedExpensePerHead == existing.getSplitBetween().size()) {
+            // All are cleared
+            existing.setStatus(ExpenseStatus.CLEARED);
+        }
+        else {
+            existing.setStatus(ExpenseStatus.PENDING);
+        }
+        expenseRepository.save(existing);
+
+        return existing;
+    }
+
+    public List<UserExpense> getExpenseForUser(String userId) {
+        List<Object[]> expenseOnUser = expenseRepository.getExpenseByUserClass(userId);
+        List<UserExpense> userExpenseList = null;
+        if(expenseOnUser != null) {
+            userExpenseList = new ArrayList<>();
+            for(Object[] o: expenseOnUser) {
+                userExpenseList.add(mapUserExpense(o));
+            }
+        }
+
+        return userExpenseList;
+    }
+
+    private UserExpense mapUserExpense(Object[] o) {
+        return UserExpense.builder()
+                .expenseId((String) o[0])
+                .status(ExpenseStatus.Status.valueOf((String) o[1]))
+                .groupId((String) o[2])
+                .amount((Double) o[3])
+                .build();
     }
 
     private Expense validateAndPrepareExpenseObject(AddExpenseDto expenseDto) {
@@ -50,6 +121,12 @@ public class ExpenseService {
         }
         if(expenseDto.getSplitBetween() == null || expenseDto.getSplitBetween().size() == 0) {
             validationMessage += "\nsplitBetween can not be empty";
+        }
+        if(expenseDto.getGroupId() != null) {
+            Group group = groupRepository.findById(expenseDto.getGroupId()).orElse(null);
+            if(group == null) {
+                validationMessage += "\nGroup: " + expenseDto.getGroupId() + " doesn't exist";
+            }
         }
         if(!validationMessage.equals("")) {
             throw new IllegalArgumentException(validationMessage);
@@ -75,6 +152,9 @@ public class ExpenseService {
 
 
                 expenseObject = expenseBuilder.build(); // Population complete
+            }
+            else {
+                throw new IllegalArgumentException(validationMessage);
             }
         }
 

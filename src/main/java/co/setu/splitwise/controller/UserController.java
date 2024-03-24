@@ -20,7 +20,6 @@ public class UserController {
         RegisteredUser user = userRepository.getById(userId);
         return jsonResponse(
                 "userId", user.getUserId(),
-                "groups", user.getGroup()
-                );
+                "groups", user.getGroup());
     }
 }

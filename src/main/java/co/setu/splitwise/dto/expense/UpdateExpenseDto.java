@@ -9,10 +9,10 @@ import java.util.List;
 public class UpdateExpenseDto {
     private String expenseId;
     private List<IndividualExpense> expenseBreakdown;
-}
 
-@Getter
-class IndividualExpense {
-    private String userId;
-    private ExpenseStatus.Status status;
+    @Getter
+    public static class IndividualExpense {
+        private String userId;
+        private ExpenseStatus.Status status;
+    }
 }

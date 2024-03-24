@@ -19,8 +19,9 @@ public class ExpenseApiController {
 
     @GetMapping("/get-for-user/{userId}")
     public ResponseEntity getExpenseForUser(@PathVariable String userId) {
-
-        return null;
+        return jsonResponse(
+                "userId", userId,
+                "expenses", expenseService.getExpenseForUser(userId));
     }
 
     /**
@@ -32,14 +33,33 @@ public class ExpenseApiController {
      * */
     @PostMapping("/add")
     public ResponseEntity addExpense(@RequestBody AddExpenseDto addExpenseDto) {
-        Expense created = expenseService.addExpense(addExpenseDto);
-        return jsonResponse("expenseId", created.getExpenseId());
+        try {
+            Expense created = expenseService.addExpense(addExpenseDto);
+            return jsonResponse("expenseId", created.getExpenseId());
+        }
+        catch (IllegalArgumentException ex) {
+            return jsonResponse(
+                    "error", ex.getMessage().trim(),
+                    "success", false
+            );
+        }
     }
 
     @PutMapping("/update")
     public ResponseEntity updateExpense(@RequestBody UpdateExpenseDto updateExpenseDto) {
-
-        return null;
+        try {
+            Expense updated = expenseService.updateExpense(updateExpenseDto);
+            return jsonResponse(
+                    "expenseId", updated.getExpenseId(),
+                    "status", updated.getStatus()
+            );
+        }
+        catch (IllegalArgumentException ex) {
+            return jsonResponse(
+                    "error", ex.getMessage().trim(),
+                    "success", false
+            );
+        }
     }
 
     @DeleteMapping("/delete")
