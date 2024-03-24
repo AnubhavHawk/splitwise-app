@@ -86,7 +86,7 @@ public class GroupService {
         }
         List<RegisteredUser> registeredRegisteredUsers = new ArrayList<>();
         for(RegisteredUser registeredUser : uniqueRegisteredUsers) {
-            RegisteredUser fromDb = userRepository.getById(registeredUser.getUserId());
+            RegisteredUser fromDb = userRepository.findById(registeredUser.getUserId()).orElse(null);
             registeredRegisteredUsers.add(fromDb);
 
             if(fromDb == null) {
