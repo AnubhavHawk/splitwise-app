@@ -58,7 +58,8 @@
    - > ERROR: duplicate key value violates unique constraint
    - In order to avoid this, follow below steps if you are going to run the application <ins>second time (or later)</ins>:
    1. Open the configuration file (`splitwise-app/src/main/resources/application.properties`) in a text editor
-   2. Comment out this line 5 (spring.datasource.initialization-mode=always). It will not try to persist the hard coded users again
+   2. Comment out this line 5 (spring.datasource.initialization-mode=always). Comments are added by placing `#` at the begining of the line.
+   3. Once commented out, it will not try to persist the hard coded users again. You can now run the application again.
 
 #### Users
  To begin with, there are 5 users already stored in the users table for demo purpose
@@ -76,4 +77,39 @@ Same can be verified by calling the API from swagger-ui (`http://localhost:8080/
 
 ![Users API](./docs/users-api.png)
 
+These pre-initialized users come handy when calling other APIs.
 
+You can use any of those `user_id` for following fields in Expense and Group APIs.
+
+- createdBy
+- splitBetween
+
+
+
+### API overview
+
+![Users API](./docs/all-api.png)
+
+1. **/expense/add:**
+   >  Is used to create new expense. `createdBy` is the `userId` who is creating the Expense. `splitBetween` is the list of `user_id` among which the `amount` needs to be split
+
+2. **/expense/delete:**
+   > To delete the expense. In case a user added expense by mistake
+
+3. **/expense/get-for-user/{userId}**
+   > To get all the expenses (PAID / UNPAID) for a particular `userId`
+
+4. **/expense/update:**
+   > To update the status of the split. `expenseBreakdown` you pass the list of `userId` and the `status`. This API will be used whenever someone makes a payment/clears the due amount on application.
+
+5. **/group/create:**
+   > To create a group for sharing any expense. `groupMemberIdList` you pass the list of `userId` who are supposed to be part of a particular group.
+
+6. **/group/add-member:**
+   > To add more members to an existing group. `groupMemberList` you pass the list of `userId` whom you are trying to add to the group.
+
+7. **/group/members/{groupId}:**
+   > To get the list of all the members of the group.
+
+8. **/user/all:**
+   > To get the list of all the available registered members on splitwise app. 

@@ -60,6 +60,9 @@ public class ExpenseService {
         List<SplitBetween> listOfUsersPaying = new ArrayList<>();
         for(SplitBetween userFromDb: usersToPay) {
             for(UpdateExpenseDto.IndividualExpense individualExpense: updateExpenseDto.getExpenseBreakdown()) {
+                if(userFromDb.getToBePaidBy() == null) {
+                    throw new IllegalArgumentException("User is not valid");
+                }
                 if(userFromDb.getToBePaidBy().getUserId().equals(individualExpense.getUserId())) {
                     userFromDb.setStatus(individualExpense.getStatus());
                     listOfUsersPaying.add(userFromDb);
@@ -147,7 +150,7 @@ public class ExpenseService {
         else { // All Validations are complete
             List<RegisteredUser> registeredUserListToParticipateInSplitting = new ArrayList<>();
             for(String splitBetweenUserId: expenseDto.getSplitBetween()) {
-                RegisteredUser user = userRepository.getById(splitBetweenUserId);
+                RegisteredUser user = userRepository.findById(splitBetweenUserId).orElse(null);
                 if(user == null) {
                     validationMessage += "\nuser: " + splitBetweenUserId + " is not registered";
                 }
