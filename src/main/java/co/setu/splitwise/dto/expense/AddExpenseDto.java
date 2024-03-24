@@ -10,4 +10,5 @@ public class AddExpenseDto {
     private String description;
     private List<String> splitBetween;
     private String createdBy;
+    private String groupId;
 }

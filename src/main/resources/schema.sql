@@ -1,4 +1,4 @@
-INSERT INTO user(user_id, mobile, user_name, registered_at) VALUES
+INSERT INTO registered_user(user_id, mobile, user_name, registered_at) VALUES
     ('user-001', '9876543210', 'Anubhav', '2024-03-24 10:12:31.493498'),
     ('user-002', '9876543211', 'Ayush', '2024-03-24 10:12:31.493498'),
     ('user-003', '9876543212', 'John Doe', '2024-03-24 10:12:33.493498'),

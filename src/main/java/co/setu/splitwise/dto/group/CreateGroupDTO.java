@@ -1,13 +1,14 @@
 package co.setu.splitwise.dto.group;
 
 import co.setu.splitwise.model.Group;
-import co.setu.splitwise.model.User;
+import co.setu.splitwise.model.RegisteredUser;
 import lombok.Getter;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
+
+import static co.setu.splitwise.util.RandomIdGenerator.generateRandomId;
 
 @Getter
 public class CreateGroupDTO {
@@ -15,17 +16,19 @@ public class CreateGroupDTO {
     private List<String> groupMemberIdList; // Only userId
     private String groupAdmin;
 
-    public Group mapToGroup() {
-        Set userSet = new TreeSet();
-        List<User> memberList = groupMemberIdList.stream()
-                .map(id -> User.builder().userId(id).build())
+    public Group mapToNewGroup() {
+        List userSet = new ArrayList();
+        List<RegisteredUser> memberList = groupMemberIdList.stream()
+                .map(id -> RegisteredUser.builder().userId(id).build())
                 .collect(Collectors.toList());
+        memberList.add(RegisteredUser.builder().userId(groupAdmin).build()); // Add admin also to the group
         userSet.addAll(memberList);
 
         return Group.builder()
+                .groupId(generateRandomId())
                 .groupName(groupName)
                 .groupMembers(userSet)
-                .createdBy(User.builder().userId(groupAdmin).build())
+                .createdBy(RegisteredUser.builder().userId(groupAdmin).build())
                 .build();
     }
 }

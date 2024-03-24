@@ -1,6 +1,6 @@
 package co.setu.splitwise.dto.group;
 
-import co.setu.splitwise.model.User;
+import co.setu.splitwise.model.RegisteredUser;
 import lombok.Getter;
 
 import java.util.List;
@@ -11,8 +11,8 @@ public class AddGroupMemberDto {
     private String groupId;
     private List<String> groupMemberList;
 
-    public List<User> mapUser() {
+    public List<RegisteredUser> mapUser() {
         return groupMemberList.stream().map(userId ->
-                User.builder().userId(userId).build()).collect(Collectors.toList());
+                RegisteredUser.builder().userId(userId).build()).collect(Collectors.toList());
     }
 }
